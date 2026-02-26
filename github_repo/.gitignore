@@ -1,0 +1,63 @@
+# Simulator output
+sim_out/
+simv*
+csrc/
+DVEfiles/
+.synopsys_dve.history
+*.daidir/
+ucli.key
+inter.vpd
+vcdplus.vpd
+dump.vcd
+*.vcd
+*.vpd
+*.shm/
+*.fsdb
+*.trn
+*.dsn
+novas_dump.log
+verdi_config_file
+
+# Xcelium
+xcelium.d/
+*.log
+*.history
+*.key
+xrun.history
+
+# Questa
+work/
+modelsim.ini
+vsim.wlf
+transcript
+*.wlf
+
+# Verilator
+obj_dir/
+*.verilator/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Editor files
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+.idea/
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.d
+
+# Coverage databases
+urgReport/
+*.vdb/
+coverage.ucdb
+cov_work/

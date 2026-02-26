@@ -1,0 +1,4 @@
+[submodule "rtl"]
+	path = rtl
+	url = https://github.com/lowRISC/ibex.git
+	branch = master

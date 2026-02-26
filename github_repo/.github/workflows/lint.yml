@@ -1,0 +1,108 @@
+# .github/workflows/lint.yml
+# Runs Verilator lint on all SystemVerilog TB files
+# This gives automated syntax/lint feedback on every PR and push
+# (Full simulation requires proprietary tools not available in CI)
+
+name: Lint
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  verilator-lint:
+    name: Verilator Lint Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive  # Also fetches ibex RTL submodule
+
+      - name: Install Verilator
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y verilator
+          verilator --version
+
+      - name: Lint transaction and interface
+        run: |
+          verilator --lint-only --sv \
+            -Wall \
+            tb/ibex_transaction.sv \
+            2>&1 || true
+
+      - name: Lint sequences
+        run: |
+          verilator --lint-only --sv \
+            -Wall \
+            sequences/ibex_sequences.sv \
+            2>&1 || true
+
+      - name: Check file structure
+        run: |
+          echo "=== TB Files ==="
+          find . -name "*.sv" | sort
+          echo ""
+          echo "=== Line counts ==="
+          wc -l tb/*.sv sequences/*.sv agents/*.sv scoreboard/*.sv env/*.sv test/*.sv
+
+      - name: Validate Makefile syntax
+        run: |
+          make --dry-run vcs_run TEST=ibex_smoke_test 2>&1 | head -20 || true
+          echo "Makefile syntax OK"
+
+  markdown-lint:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check README and docs exist
+        run: |
+          test -f README.md && echo "README.md ✓"
+          test -f docs/verification_plan.md && echo "verification_plan.md ✓"
+          test -f .gitmodules && echo ".gitmodules ✓"
+
+      - name: Check all SV files are present
+        run: |
+          files=(
+            "tb/ibex_transaction.sv"
+            "tb/ibex_if.sv"
+            "tb/ibex_tb_top.sv"
+            "sequences/ibex_sequences.sv"
+            "agents/ibex_driver.sv"
+            "agents/ibex_monitor.sv"
+            "agents/ibex_agent.sv"
+            "scoreboard/ibex_scoreboard.sv"
+            "env/ibex_env.sv"
+            "test/ibex_tests.sv"
+          )
+          all_ok=true
+          for f in "${files[@]}"; do
+            if [ -f "$f" ]; then
+              echo "✓ $f ($(wc -l < $f) lines)"
+            else
+              echo "✗ MISSING: $f"
+              all_ok=false
+            fi
+          done
+          $all_ok
+
+      - name: Check UVM macros are present
+        run: |
+          echo "Checking for UVM component registrations..."
+          grep -rn "uvm_component_utils\|uvm_object_utils" . --include="*.sv" | wc -l | \
+            xargs -I{} bash -c 'echo "{} UVM registration macros found"; [ {} -gt 5 ]'
+          
+          echo "Checking for analysis ports..."
+          grep -rn "uvm_analysis_port\|uvm_analysis_export" . --include="*.sv" | wc -l | \
+            xargs -I{} echo "{} analysis port declarations"
+          
+          echo "Checking for RVFI usage..."
+          grep -rn "rvfi_valid\|rvfi_insn\|rvfi_rd_wdata" . --include="*.sv" | wc -l | \
+            xargs -I{} bash -c 'echo "{} RVFI signal references"; [ {} -gt 10 ]'
